@@ -1,11 +1,26 @@
 #!/bin/bash
 
-PATH_TO_FILE="/etc/modprobe.d/hardening.conf"
+# 6.1 Auditd Configuration
+# 7.1 Advanced Intrusion Detection Environment (AIDE)
+# 10. System Settings – OS Update Installation
+mail="root@example.com"
+
+# 10. System Settings – OS Update Installation
+user_mail="user@example.com"
+
+# 11.3.1 Postfix
+mailhost="mail.example.com"
+
+# 10. System Settings – OS Update Installation
+mail_host="localhost"
+
+# 8.2 Configure Message Forwarding to Remote Server
+message_server="@graylog.example.com:514"
 
 # 2.2 Restrict Dynamic Mounting and Unmounting of Filesystems
 restrict_dynamic_mount_unmount_fs() {
 echo "Restrict Dynamic Mounting and Unmounting of Filesystems"
-cat << EOF > $PATH_TO_FILE
+cat << EOF > /etc/modprobe.d/hardening.conf
 install cramfs /bin/true
 install freevxfs /bin/true
 install jffs2 /bin/true
@@ -39,7 +54,7 @@ echo "Preventing Mounting USB Storage by users"
 echo "Disabling modprobe loading of USB and FireWire storage drivers"
 echo "blacklist usb-storage
 blacklist firewire-core
-install usb-storage /bin/true" >> $PATH_TO_FILE
+install usb-storage /bin/true" >> /etc/modprobe.d/hardening.conf
 echo "Disabling USB authorisation"
 cat << EOF >/opt/usb-auth.sh
 #!/bin/bash
@@ -443,7 +458,7 @@ sed -i 's/admin_space_left .*/admin_space_left = 10/g' /etc/audit/auditd.conf
 sed -i 's/admin_space_left_action .*/admin_space_left_action = email/g' /etc/audit/auditd.conf
 sed -i 's/disk_full_action .*/disk_full_action = suspend/g' /etc/audit/auditd.conf
 sed -i 's/disk_error_action .*/disk_error_action = suspend/g' /etc/audit/auditd.conf
-sed -i 's/action_mail_acct .*/action_mail_acct = root@example.com/g' /etc/audit/auditd.conf
+sed -i 's/action_mail_acct .*/action_mail_acct = $mail/g' /etc/audit/auditd.conf
 sed -i 's/flush .*/flush = data/g' /etc/audit/auditd.conf
 }
 
@@ -597,7 +612,7 @@ echo "Init AIDE DB"
 cp /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
 echo "Check changes in files"
 /usr/sbin/aide --check
-echo "30 4 * * * root /usr/sbin/aide --check|mail -s 'AIDE' root@example.com" >> /etc/crontab
+echo "30 4 * * * root /usr/sbin/aide --check|mail -s 'AIDE' $mail" >> /etc/crontab
 }
 
 # 7.3 Prelink
@@ -629,7 +644,7 @@ systemctl restart systemd-journald
 # 8.2 Configure Message Forwarding to Remote Server
 conf_mess_forwrd_to_rem_serv() {
 echo "Configiring message forwarding to remote server"
-echo "*.* @graylog.example.com:514" >> /etc/rsyslog.conf
+echo "*.* $message_server" >> /etc/rsyslog.conf
 }
 
 # 8.3 Logwatch
@@ -659,9 +674,9 @@ update_messages = yes
 download_updates = no
 apply_updates = no
 emit_via = email
-email_from = root@example.com
-email_to = user@example.com
-email_host = localhost
+email_from = $mail
+email_to = $user_mail
+email_host = $mail_host
 EOF
 
 cat << EOF > /etc/yum/yum-cron-hourly.conf
@@ -869,7 +884,7 @@ sed -i 's/mydestination .*/mydestination =/g' /etc/postfix/main.cf
 echo "local_transport = error: local delivery disabled" >> /etc/postfix/main.cf
 sed -i 's/unknown_local_recipient_reject_code .*/unknown_local_recipient_reject_code = 550/g' /etc/postfix/main.cf
 echo "mynetworks = 127.0.0.0/8" >> /etc/postfix/main.cf
-echo "relayhost = [mail.example.com]:587" >> /etc/postfix/main.cf
+echo "relayhost = [$mailhost]:587" >> /etc/postfix/main.cf
 }
 
 # 11.4. Services – Remove Obsolete Services
